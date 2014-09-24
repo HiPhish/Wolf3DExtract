@@ -23,3 +23,8 @@ wolf3dextract
 *~
 *.swapfile
 *.swp
+
+#########################
+# Tags files from Ctags #
+#########################
+tags

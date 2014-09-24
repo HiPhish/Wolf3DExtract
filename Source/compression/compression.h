@@ -18,7 +18,7 @@
  *
  *  @return Returns `0` for no error, otherwise an error code.
  */
-int rlew_expand(word * const source, word *const destination, const uint length, const word rlew_tag);
+int rlew_expand(word * const source, word *const destination, const word length, const word rlew_tag);
 
 /**
  *  Expands a Carmack-compressed sequence into a pre-allocated buffer.

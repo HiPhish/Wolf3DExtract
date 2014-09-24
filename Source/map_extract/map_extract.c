@@ -167,7 +167,7 @@ word *load_map(FILE *gamemaps, struct level_header *header, uint map) {
 	}
 	
 	DEBUG_PRINT("RLEW-expanding...")
-	rlew_expand(rlew_buffer, map_buffer, uncompressed_length, atlas->rlew_tag);
+	rlew_expand(rlew_buffer+1, map_buffer, uncompressed_length, atlas->rlew_tag);
 	free(rlew_buffer);
 	
 	return map_buffer;

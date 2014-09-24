@@ -7,7 +7,7 @@
 
 #pragma mark -
 
-int rlew_expand(word *const source, word *const destination, const uint length, const word rlew_tag) {
+int rlew_expand(word *const source, word *const destination, const word length, const word rlew_tag) {
 	word *read = source, *write = destination, *end = destination + length; // read- and write heads of the algorightm
 	word current_word;
 	uint count = 0, i = 0;
@@ -35,8 +35,9 @@ int carmack_expand(word *const source, word *const destination, word length) {
 	// the read-, write- and copy pointers are byte pointers for smaller iteration steps
 	byte *read = (byte *)source, *write = (byte *)destination, *copy; // read- and write heads of the algorithm (as bytes)
 	byte flag;
-	uint offset = 0, count = 0, i = 0;
-	
+	word offset = 0, count = 0, i = 0;
+	// compressed blocks have the following form: (count, flag, offset, [offset]); offset is a byte for near pointers, a word for far pointers
+
 	#define COPY_WORD {*(write++) = *(copy++); *(write++) = *(copy++); --length;} ///< This is a workaround for lack of nested functions.
 	
 	if (source == NULL || destination == NULL) {
@@ -51,7 +52,7 @@ int carmack_expand(word *const source, word *const destination, word length) {
 		if (flag == NEAR && count != 0) {
 			DEBUG_PRINT("Near pointer")
 			offset = *(read++);
-			copy = write - 2 * offset; // *2 because offset is in bytes
+			copy = write - 2 * offset; // *2 because write is a byte pointer and we want to copy words
 			for (i = 0; i < count; ++i) {
 				COPY_WORD
 			}
@@ -59,8 +60,8 @@ int carmack_expand(word *const source, word *const destination, word length) {
 			DEBUG_PRINT("Far pointer")
 			offset = *((word *)read);
 			read += 2;
-			copy = (byte *)destination + 2 * offset;
-			for (i = 0; i < offset; ++i) {
+			copy = (byte *)(destination + offset); // destination is a word pointer
+			for (i = 0; i < count; ++i) {
 				COPY_WORD
 			}
 		} else if ((flag == NEAR || flag == FAR) && count == 0) {
