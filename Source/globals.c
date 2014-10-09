@@ -1,5 +1,16 @@
 #include "globals.h"
+#include <string.h>
 
-char extensions[NUMBER_OF_EXTENSIONS][4] = {WL1, WL3, WL6};
+uint debug_level = 0;
 
+char extensions[GAME_VERSIONS][4] = {WL1_S, WL3_S, WL6_S};
 char extension[4] = {'\0', '\0', '\0', '\0'};
+uint current_game_version = 0;
+
+void change_extension(char *restrict file_name, const char *restrict extension) {
+	int n = (int)strlen(file_name); // strlen does not count the terminating `\0`.
+	for (int i = 0; i < 3; ++i) {
+		file_name[n - 3 + i] = extension[i];
+	}
+}
+

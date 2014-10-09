@@ -3,13 +3,18 @@
 #include <string.h>
 #include "globals.h"
 #include "map_extract/map_extract.h"
+#include "pic_extract/pic_extract.h"
 
 #pragma mark Constants
 
 #define EXTRACT_LEVEL_ATLAS  "-la"  ///< Print the level atlas.
 #define EXTRACT_LEVEL_HEADER "-lh"  ///< Print a level's header.
-#define EXTRACT_MAP          "-lm"  ///< Print a level's map
+#define EXTRACT_MAP          "-lm"  ///< Print a level's map.
+#define EXTRACT_PIC_OFFSETS  "-po"  ///< Print the pic offsets.
+#define EXTRACT_PIC_TABLE    "-pt"  ///< Print the pic table.
+#define EXTRACT_PIC          "-pic" ///< Print a bitmap picture (not a sprite or texture).
 #define SPECIFY_EXTENSION    "-ext" ///< Specify a particular extension to use.
+#define SET_DEBUG_LEVEL      "-dbg" ///< Set the debug level manually.
 
 enum program_error {
 	SUCCESS,
@@ -49,7 +54,14 @@ void print_usage(FILE *file);
  *
  *  @return 0 on success, otherwise non-zero.
  */
-int determine_extension();
+int determine_game_version();
+
+/**
+ *  Set the debug level for debug messages.
+ *
+ *  @param l String with the debug level, must represent an integer number.
+ */
+void set_debug_level(const char *l);
 
 /**
  *  Set a specific file extension to use.
@@ -84,10 +96,34 @@ void print_level_header(const char *restrict episode, const char *restrict level
  */
 void print_level_map(const char *restrict episode, const char *restrict level, const char *restrict map);
 
+/** 
+ *  Print the offsets of VGAGRAPH chunks to the standard output.
+ *
+ *  The offsets are given as signed 32-bit integers.
+ */
+void print_pic_offsets();
+
+/**
+ *  Print the picture size table to the standard output.
+ *
+ *  The table elements are pairs of signed 16-bit integers, where the first number of an element
+ *  is the width and the second one is the height.
+ */
+void print_pic_table();
+
+/**
+ *  Print a bitmap picture (not a sprite or texture) to the standard output.
+ *
+ *  @param magic_number Magic number of the image.
+ *
+ *  The magic number is dependent on the version of the game.
+ */
+void print_picture(const char *restrict magic_number);
+
 #pragma mark -
 
 int main(int argc, const char *argv[]) {
-	determine_extension();
+	determine_game_version();
 	process_arguments(argc, argv);
 	
     return 0;
@@ -95,9 +131,14 @@ int main(int argc, const char *argv[]) {
 
 #pragma mark -
 
-int determine_extension() {
-	strncpy(extension, "WL6", 3); // <-- Placeholder for now
+int determine_game_version() {
+	current_game_version = WL6_I; // <-- Placeholder for now
+	strncpy(extension, extensions[current_game_version], 3);
 	return 0;
+}
+
+void set_debug_level(const char *l) {
+	debug_level = (uint)strtol(l, NULL, 10);
 }
 
 void process_arguments(int argc, const char *argv[]) {
@@ -115,6 +156,14 @@ void process_arguments(int argc, const char *argv[]) {
 		} else if (strcmp(argv[i], EXTRACT_MAP)          == 0) {
 			print_level_map(argv[i+1], argv[i+2], argv[i+3]);
 			i += 3;
+		} else if (strcmp(argv[i], EXTRACT_PIC_TABLE)    == 0) {
+			print_pic_table();
+		} else if (strcmp(argv[i], EXTRACT_PIC_OFFSETS)  == 0) {
+			print_pic_offsets();
+		} else if (strcmp(argv[i], EXTRACT_PIC)          == 0) {
+			print_picture(argv[++i]);
+		} else if (strcmp(argv[i], SET_DEBUG_LEVEL)      == 0) {
+			set_debug_level(argv[++i]);
 		} else if (strcmp(argv[i], SPECIFY_EXTENSION)    == 0) {
 			specify_extension(argv[++i]);
 		} else {
@@ -128,11 +177,16 @@ void process_arguments(int argc, const char *argv[]) {
 
 void print_usage(FILE *file) {
 	fprintf(file, "Usage: Call from the same directory where your data files are located and pass the following arguments\n"
-				  "\t"SPECIFY_EXTENSION   " WLX                 Set the extension of the data files to the argument WLX\n"
-			      "\t"EXTRACT_LEVEL_ATLAS "                      Extract the atlas of the levels\n"
-			      "\t"EXTRACT_LEVEL_HEADER" episode level        Extract the header data for the specified level (leve and episode given as numbers)\n"
-			      "\t"EXTRACT_MAP         " episode level map    Extract the specified map for the specified level (map in the range 0 - 2)\n"
+				  "\t"SPECIFY_EXTENSION    " WLX   " "Set the extension of the data files to the argument WLX\n"
+				  "\t"SET_DEBUG_LEVEL      " n     " "Set the level of debug messages (default 0, no messages)\n"
+			      "\t"EXTRACT_LEVEL_ATLAS  "        " "Extract the atlas of the levels\n"
+			      "\t"EXTRACT_LEVEL_HEADER "  e l   " "Extract the header data for the specified level (level and episode given as numbers)\n"
+			      "\t"EXTRACT_MAP          "  e l m " "Extract the specified map for the specified level (map in the range 0 - 2)\n"
+			      "\t"EXTRACT_PIC_OFFSETS  "        " "Extract the picture offsets\n"
+			      "\t"EXTRACT_PIC_TABLE    "        " "Extract the picture table\n"
+			      "\t"EXTRACT_PIC          " m     " "Extract the picture with the specified magic number\n"
 			      "The output is printed to the standard output, so you'll want to redirect it into another file or pipe it into another program.\n"
+				  "Arguments are processed in the order they are give, so if for exapmle you want to specify the extension you have to do it before trying to extract an asset.\n"
 			);
 }
 
@@ -179,7 +233,7 @@ void print_level_header(const char *restrict episode, const char *restrict level
 	if (written_bytes == 0) {
 		fprintf(stderr, "\tError writing level header for episode %i level %i.\n", e, l);
 	} else {
-		DEBUG_PRINT("Wrote level header for episode % i, level %i.\n", e, l);
+		DEBUG_PRINT(1, "Wrote level header for episode % i, level %i.\n", e, l);
 	}
 }
 
@@ -201,6 +255,36 @@ void print_level_map(const char *restrict episode, const char *restrict level, c
 	if (written_bytes == 0) {
 		fprintf(stderr, "\tError writing level map %i for episode %i level %i.\n", m, e, l);
 	} else {
-		DEBUG_PRINT("Wrote mal %i of episode % i, level %i.\n", m, e, l);
+		DEBUG_PRINT(1, "Wrote map %i of episode % i, level %i.\n", m, e, l);
 	}
 }
+
+void print_pic_offsets() {
+	int32_t *result;
+	size_t length = extract_pic_offsets(&result) / sizeof(int32_t);
+	fwrite(result, sizeof(int32_t), length, stdout);
+}
+
+void print_pic_table() {
+	word *result;
+	size_t length = extract_pic_table(&result) / sizeof(word);
+	fwrite(result, sizeof *result, length, stdout);
+}
+
+void print_picture(const char *restrict magic_number) {
+	int i = (uint)strtol(magic_number, NULL, 10);
+	struct picture *result = NULL;
+	size_t written_bytes = extract_pic(&result, i);
+
+	uint number_of_bytes = result->width * result->height;
+	written_bytes *= fwrite(&(result->width), sizeof(word), 1, stdout) * fwrite(&(result->height), sizeof(word), 1, stdout);
+	written_bytes *= fwrite(result->textels, sizeof(byte), number_of_bytes, stdout);
+
+
+	if (written_bytes == 0) {
+		fprintf(stderr, "\tError writing picture %i.\n", i);
+	} else {
+		DEBUG_PRINT(1, "Wrote picture %i.\n", i);
+	}
+}
+

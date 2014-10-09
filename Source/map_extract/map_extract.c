@@ -142,7 +142,7 @@ word *load_map(FILE *gamemaps, struct level_header *header, uint map) {
 		return NULL;
 	}
 	
-	DEBUG_PRINT("Loading Carmack-compressed data...")
+	DEBUG_PRINT(1, "Loading Carmack-compressed data...")
 	fread(carmack_buffer, sizeof(word), header->cc_length[map] / 2, gamemaps); // the length is in bytes
 	
 	word rlew_compressed_length = *(carmack_buffer++) / 2; // stored in bytes, we want in words
@@ -152,9 +152,9 @@ word *load_map(FILE *gamemaps, struct level_header *header, uint map) {
 		return NULL;
 	}
 	
-	DEBUG_PRINT("Carmack-expanding from %i to %i words...", header->cc_length[map], rlew_compressed_length)
+	DEBUG_PRINT(1, "Carmack-expanding from %i to %i words...", header->cc_length[map], rlew_compressed_length)
 	carmack_expand(carmack_buffer, rlew_buffer, rlew_compressed_length);
-	DEBUG_PRINT("Carmack-expanded...")
+	DEBUG_PRINT(1, "Carmack-expanded...")
 	
 	--carmack_buffer; // move the Carmack buffer back one word to go back to the word we skipped earlier
 	free(carmack_buffer);
@@ -166,7 +166,7 @@ word *load_map(FILE *gamemaps, struct level_header *header, uint map) {
 		return NULL;
 	}
 	
-	DEBUG_PRINT("RLEW-expanding...")
+	DEBUG_PRINT(1, "RLEW-expanding...")
 	rlew_expand(rlew_buffer+1, map_buffer, uncompressed_length, atlas->rlew_tag);
 	free(rlew_buffer);
 	
@@ -217,14 +217,14 @@ size_t extract_map(word **buffer, uint episode, uint level, uint map) {
 	char maps_fname[] = MAPS_FILE;
 	change_extension(maps_fname, extension);
 	
-	DEBUG_PRINT("Loading file...")
+	DEBUG_PRINT(1, "Loading file...")
 	FILE *gamemaps = fopen(maps_fname, "rb");
 	if (gamemaps == NULL) {
 		fprintf(stderr, "Error: Could not open maps file %s.\n", maps_fname);
 		return FILE_NOT_FOUND;
 	}
 	
-	DEBUG_PRINT("Loading header...")
+	DEBUG_PRINT(1, "Loading header...")
 	struct level_header *header = load_header(gamemaps, episode, level);
 	if (header == NULL) {
 		fprintf(stderr, "Error: Could not load header for level %i:%i.\n", episode, level);
@@ -232,7 +232,7 @@ size_t extract_map(word **buffer, uint episode, uint level, uint map) {
 	}
 	size_t size = header->width * header->height * sizeof(word);
 	
-	DEBUG_PRINT("Loading map...\n")
+	DEBUG_PRINT(1, "Loading map...\n")
 	word *result = load_map(gamemaps, header, map);
 	if (result == NULL) {
 		fprintf(stderr, "Error: Could not load map \"%s\" for level %i:%i.\n", plane_to_string[map], episode, level);
@@ -245,9 +245,3 @@ size_t extract_map(word **buffer, uint episode, uint level, uint map) {
 	return size;
 }
 
-void change_extension(char *restrict file_name, const char *restrict extension) {
-	int n = (int)strlen(file_name); // strlen does not count the terminating `\0`.
-	for (int i = 0; i < 3; ++i) {
-		file_name[n - 3 + i] = extension[i];
-	}
-}

@@ -16,6 +16,7 @@ Thumbs.db
 *.o
 *.out
 wolf3dextract
+vga2ppm
 
 #################
 # Vim generated #
@@ -23,6 +24,7 @@ wolf3dextract
 *~
 *.swapfile
 *.swp
+.ycm_extra_conf*
 
 #########################
 # Tags files from Ctags #
