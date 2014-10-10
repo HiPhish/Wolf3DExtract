@@ -82,10 +82,10 @@ int load_pic_offsets(int force);
 int load_pic_table(int force);
 
 /** Set various contstants based on the current game version. */
-int set_constants();
+int set_constants(void);
 
 
-int set_constants() {
+int set_constants(void) {
 	pic_start = pic_starts[current_game_version];
 	pic_end   = pic_ends[  current_game_version];
 	pic_count = pic_counts[current_game_version];

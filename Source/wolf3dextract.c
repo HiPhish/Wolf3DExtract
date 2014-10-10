@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "map_extract/map_extract.h"
 #include "pic_extract/pic_extract.h"
+#include "sprite_extract/sprite_extract.h"
 
 #pragma mark Constants
 
@@ -13,6 +14,7 @@
 #define EXTRACT_PIC_OFFSETS  "-po"  ///< Print the pic offsets.
 #define EXTRACT_PIC_TABLE    "-pt"  ///< Print the pic table.
 #define EXTRACT_PIC          "-pic" ///< Print a bitmap picture (not a sprite or texture).
+#define EXTRACT_SPRITE       "-spr" ///< Print a sprite.
 #define SPECIFY_EXTENSION    "-ext" ///< Specify a particular extension to use.
 #define SET_DEBUG_LEVEL      "-dbg" ///< Set the debug level manually.
 
@@ -27,8 +29,11 @@ enum program_error {
 	PROGRAM_ERRORS
 };
 
-#pragma mark Mappings
+/** Compare two strings and evaluate to `1` if they are equal, `0` otherwise. */
+#define STRING_EQUAL(s1, s2) (strcmp(s1, s2)  == 0) ? 1 : 0
 
+/** Compare the current argument with a given string. */
+#define ARG_EQUAL(arg) STRING_EQUAL(argv[i], arg)
 
 #pragma mark Functions
 
@@ -54,7 +59,7 @@ void print_usage(FILE *file);
  *
  *  @return 0 on success, otherwise non-zero.
  */
-int determine_game_version();
+int determine_game_version(void);
 
 /**
  *  Set the debug level for debug messages.
@@ -73,7 +78,7 @@ void specify_extension(const char *ext);
 /**
  *  Print the binary contents of the level atlas to the standard output.
  */
-void print_level_atlas();
+void print_level_atlas(void);
 
 /**
  *  Print the binary contents of a level header to the standard output.
@@ -101,7 +106,7 @@ void print_level_map(const char *restrict episode, const char *restrict level, c
  *
  *  The offsets are given as signed 32-bit integers.
  */
-void print_pic_offsets();
+void print_pic_offsets(void);
 
 /**
  *  Print the picture size table to the standard output.
@@ -109,7 +114,7 @@ void print_pic_offsets();
  *  The table elements are pairs of signed 16-bit integers, where the first number of an element
  *  is the width and the second one is the height.
  */
-void print_pic_table();
+void print_pic_table(void);
 
 /**
  *  Print a bitmap picture (not a sprite or texture) to the standard output.
@@ -119,6 +124,8 @@ void print_pic_table();
  *  The magic number is dependent on the version of the game.
  */
 void print_picture(const char *restrict magic_number);
+
+void print_sprite(const char *restrict magic_number);
 
 #pragma mark -
 
@@ -131,7 +138,7 @@ int main(int argc, const char *argv[]) {
 
 #pragma mark -
 
-int determine_game_version() {
+int determine_game_version(void) {
 	current_game_version = WL6_I; // <-- Placeholder for now
 	strncpy(extension, extensions[current_game_version], 3);
 	return 0;
@@ -148,23 +155,25 @@ void process_arguments(int argc, const char *argv[]) {
 	}
 	int i = 1; // Skip argv[0] (program name).
 	while (i < argc) {
-		if (       strcmp(argv[i], EXTRACT_LEVEL_ATLAS)  == 0) {
+		if (       ARG_EQUAL(EXTRACT_LEVEL_ATLAS) ) {
 			print_level_atlas();
-		} else if (strcmp(argv[i], EXTRACT_LEVEL_HEADER) == 0) {
+		} else if (ARG_EQUAL(EXTRACT_LEVEL_HEADER)) {
 			print_level_header(argv[i+1], argv[i+2]);
 			i += 2;
-		} else if (strcmp(argv[i], EXTRACT_MAP)          == 0) {
+		} else if (ARG_EQUAL(EXTRACT_MAP)         ) {
 			print_level_map(argv[i+1], argv[i+2], argv[i+3]);
 			i += 3;
-		} else if (strcmp(argv[i], EXTRACT_PIC_TABLE)    == 0) {
+		} else if (ARG_EQUAL(EXTRACT_PIC_TABLE)   ) {
 			print_pic_table();
-		} else if (strcmp(argv[i], EXTRACT_PIC_OFFSETS)  == 0) {
+		} else if (ARG_EQUAL(EXTRACT_PIC_OFFSETS) ) {
 			print_pic_offsets();
-		} else if (strcmp(argv[i], EXTRACT_PIC)          == 0) {
+		} else if (ARG_EQUAL(EXTRACT_PIC)         ) {
 			print_picture(argv[++i]);
-		} else if (strcmp(argv[i], SET_DEBUG_LEVEL)      == 0) {
+		} else if (ARG_EQUAL(EXTRACT_SPRITE)      ) {
+			print_sprite(argv[++i]);
+		} else if (ARG_EQUAL(SET_DEBUG_LEVEL)     ) {
 			set_debug_level(argv[++i]);
-		} else if (strcmp(argv[i], SPECIFY_EXTENSION)    == 0) {
+		} else if (ARG_EQUAL(SPECIFY_EXTENSION)   ) {
 			specify_extension(argv[++i]);
 		} else {
 			fprintf(stderr, "Unknown argument %s.\n", argv[i]);
@@ -213,8 +222,8 @@ void print_level_atlas() {
 
 void print_level_header(const char *restrict episode, const char *restrict level) {
 	struct level_header *result = NULL;
-	int e = (uint)strtol(episode, NULL, 10);
-	int l = (uint)strtol(level  , NULL, 10);
+	uint e = (uint)strtol(episode, NULL, 10);
+	uint l = (uint)strtol(level  , NULL, 10);
 	
 	size_t written_bytes = extract_level_header(&result, e, l);
 	
@@ -240,9 +249,9 @@ void print_level_header(const char *restrict episode, const char *restrict level
 void print_level_map(const char *restrict episode, const char *restrict level, const char *restrict map) {
 	word *result = NULL;
 	//struct level_header *header = NULL;
-	int e = (uint)strtol(episode, NULL, 10);
-	int l = (uint)strtol(level  , NULL, 10);
-	int m = (uint)strtol(map    , NULL, 10);
+	uint e = (uint)strtol(episode, NULL, 10);
+	uint l = (uint)strtol(level  , NULL, 10);
+	uint m = (uint)strtol(map    , NULL, 10);
 	
 	//extract_level_header(&header, e, l);
 	size_t written_bytes = extract_map(&result, e, l, m);
@@ -259,32 +268,43 @@ void print_level_map(const char *restrict episode, const char *restrict level, c
 	}
 }
 
-void print_pic_offsets() {
+void print_pic_offsets(void) {
 	int32_t *result;
 	size_t length = extract_pic_offsets(&result) / sizeof(int32_t);
 	fwrite(result, sizeof(int32_t), length, stdout);
 }
 
-void print_pic_table() {
+void print_pic_table(void) {
 	word *result;
 	size_t length = extract_pic_table(&result) / sizeof(word);
 	fwrite(result, sizeof *result, length, stdout);
 }
 
 void print_picture(const char *restrict magic_number) {
-	int i = (uint)strtol(magic_number, NULL, 10);
+	uint i = (uint)strtol(magic_number, NULL, 10);
 	struct picture *result = NULL;
 	size_t written_bytes = extract_pic(&result, i);
 
-	uint number_of_bytes = result->width * result->height;
+	int number_of_bytes = result->width * result->height;
 	written_bytes *= fwrite(&(result->width), sizeof(word), 1, stdout) * fwrite(&(result->height), sizeof(word), 1, stdout);
-	written_bytes *= fwrite(result->textels, sizeof(byte), number_of_bytes, stdout);
+	written_bytes *= fwrite(result->textels, sizeof(byte), (size_t)number_of_bytes, stdout);
 
 
 	if (written_bytes == 0) {
 		fprintf(stderr, "\tError writing picture %i.\n", i);
 	} else {
 		DEBUG_PRINT(1, "Wrote picture %i.\n", i);
+	}
+}
+
+void print_sprite(const char *restrict magic_number) {
+	uint i = (uint)strtol(magic_number, NULL, 10);
+	byte *result = NULL;
+	size_t written_bytes = extract_sprite(&result, i);
+	written_bytes *= fwrite(&(word){64}, sizeof(word), 2, stdout);
+	written_bytes *= fwrite(result, sizeof(byte), 64*64, stdout);
+	if (written_bytes == 0) {
+		fprintf(stderr, "\tError writing picture %i.\n", i);
 	}
 }
 

@@ -21,20 +21,20 @@ typedef uint8_t  byte; ///< 8-bit byte.
 typedef uint16_t word; ///< 2-byte word.
 
 /** Array listing the possible extensions used by the game's data. */
-char extensions[GAME_VERSIONS][4];
+extern char extensions[GAME_VERSIONS][4];
 
 #pragma mark -
 
-char extension[4]; ///< File extension as identified by the first call.
+extern char extension[4]; ///< File extension as identified by the first call.
 
 void change_extension(char *restrict file_name, const char *restrict extension);
 
 /** Current version of the game, idetified by the index `WLn_I`. */
-uint current_game_version;
+extern uint current_game_version;
 
 #pragma mark Diagnostics macros
 
-uint debug_level; ///< A debug level of 0 is standard and means no debug messages.
+extern uint debug_level; ///< A debug level of 0 is standard and means no debug messages.
 
 /**
  *  Prints a message to stderr.

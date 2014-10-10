@@ -1,8 +1,8 @@
 CC = clang
-# turn on  level 2 optimisation and Clang hard-mode
-CFLAGS = -std=c99 -O2 -pedantic-errors -Werror
+# turn on  level 2 optimisation and Clang hard-mode (error on language extensions and treat warnings as errors)
+CFLAGS = -std=c99 -O2 -pedantic -Werror
 
-all: debug clean
+all: release clean
 
 globals.o: globals.c globals.h
 	${CC} ${CFLAGS} -c  globals.c
@@ -16,15 +16,14 @@ map_extract.o: map_extract/map_extract.c map_extract/map_extract.h
 pic_extract.o: pic_extract/pic_extract.c pic_extract/pic_extract.h
 	${CC} ${CFLAGS} -c pic_extract/pic_extract.c
 
+sprite_extract.o: sprite_extract/sprite_extract.c sprite_extract/sprite_extract.h
+	${CC} ${CFLAGS} -c sprite_extract/sprite_extract.c
+
 wolf3dextract.o: wolf3dextract.c
 	${CC} ${CFLAGS} -c  wolf3dextract.c
 
-release: wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o
-	${CC} ${CFLAGS} wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o -o wolf3dextract
-	${CC} ${CFLAGS} rgb2ppm.c -o rgb2ppm
-
-debug: wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o
-	${CC} ${CFLAGS} -DDEBUG wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o -o wolf3dextract
+release: wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o
+	${CC} ${CFLAGS} wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o -o wolf3dextract
 	${CC} ${CFLAGS} vga2ppm.c -o vga2ppm
 
 clean:

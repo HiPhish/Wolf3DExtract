@@ -27,7 +27,7 @@ char *plane_to_string[MAP_PLANES] = {
  *
  *  @return 0 on succes, otherwise an error code.
  */
-int load_atlas();
+int load_atlas(void);
 
 /**
  *  Loads the header of a level from the GAMEMAPS file into a buffer and returns it.
@@ -71,7 +71,7 @@ struct level_atlas *atlas = NULL; ///< Variable holding the level atlas.
 
 #pragma mark -
 #pragma mark Implementation
-int load_atlas() {
+int load_atlas(void) {
 	if (atlas != NULL) {
 		return 0;
 	}
