@@ -21,7 +21,12 @@
 // Modes to assemble the image from the pixel bytes.
 #define LINEAR_MODE     0 ///< Assemble the pixels in the order they were given (useless, but intereting results).
 #define WOVEN_MODE      1 ///< Weave the pixels for bitmap pictures (default).
-#define NUMBER_OF_MODES 2 ///< Number of possible assembly modes.
+#define TRANSPOSED_MODE 2 ///< Linear but transposed (for textures).
+#define FLIPPED_MODE    3 ///< Flipped horizontally (for sprites).
+#define NUMBER_OF_MODES 4 ///< Number of possible assembly modes.
+
+/** Maps three integer numbers to a colour struct (full alpha component). */
+#define RGB(r, g, b) {(r)*255/63, (g)*255/63, (b)*255/63, 0xFF}
 
 /** Structure representing a 32-bit RGBA colour. */
 struct color {
@@ -37,14 +42,24 @@ void assemble_linear(uint16_t width, uint16_t height, uint8_t *pixels);
 /** Assemble the pixels VGA-style by "weaving" them together. */
 void assemble_woven(uint16_t width, uint16_t height, uint8_t *pixels);
 
+/** Assemble the pixel matrix transposed (for textures). */
+void assemble_transposed(uint16_t width, uint16_t height, uint8_t *pixels);
+
+/** Assemble the pixels flipped horizontally (for sprites). */
+void assemble_flipped(uint16_t width, uint16_t height, uint8_t *pixels);
+
+void print_usage(void);
+
 /** Map an assembly mode to an assembly function. */
 void (*assembly_function[NUMBER_OF_MODES])(uint16_t width, uint16_t height, uint8_t *pixels) = {
-	[LINEAR_MODE] = assemble_linear,
-	[WOVEN_MODE ] = assemble_woven,
+	[LINEAR_MODE    ] = assemble_linear,     ///< Linear.
+	[WOVEN_MODE     ] = assemble_woven,      ///< Woven.
+	[TRANSPOSED_MODE] = assemble_transposed, ///< Transposed.
+	[FLIPPED_MODE   ] = assemble_flipped,    ///< Flipped.
 };
 
 /** Currently selected assembly mode. */
-int assembly_mode = WOVEN_MODE;
+int assembly_mode = TRANSPOSED_MODE;
 
 /** Map an index number to an RGBA colour. */
 struct color wolfenstein_palette[] = {
@@ -53,10 +68,9 @@ struct color wolfenstein_palette[] = {
 
 void process_arguments(int argc, char *argv[]);
 
-/** Maps three integer numbers to a colour struct. */
-#define RGB(r, g, b) {(r)*255/63, (g)*255/63, (b)*255/63, 0xFF}
-
 int main(int argc, char *argv[]) {
+	process_arguments(argc, argv);
+
 	uint16_t  width, height; // Dimensions of the image
 	uint8_t  *pixels;        // Variable holding the individual pixels of the image.
 
@@ -81,6 +95,12 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
+void assemble_linear(uint16_t width, uint16_t height, uint8_t *pixels) {
+	for (int i = 0; i < width * height; ++i) {
+			fwrite(&wolfenstein_palette[pixels[i]], 3 * sizeof(uint8_t), 1, stdout);
+	}
+}
+
 void assemble_woven(uint16_t width, uint16_t height, uint8_t *pixels) {
 	for (int j = 0; j < height; ++j) {
 		for (int i = 0; i < width; ++i) {
@@ -90,23 +110,48 @@ void assemble_woven(uint16_t width, uint16_t height, uint8_t *pixels) {
 	}
 }
 
-void assemble_linear(uint16_t width, uint16_t height, uint8_t *pixels) {
-	for (int i = 0; i < width * height; ++i) {
-			fwrite(&wolfenstein_palette[pixels[i]], 3 * sizeof(uint8_t), 1, stdout);
+void assemble_transposed(uint16_t width, uint16_t height, uint8_t *pixels) {
+	for (int j = 0; j < height; ++j) {
+		for (int i = 0; i < width; ++i) {
+			fwrite(&wolfenstein_palette[pixels[i*height + j]], 3 * sizeof(uint8_t), 1, stdout);
+		}
+	}
+}
+
+void assemble_flipped(uint16_t width, uint16_t height, uint8_t *pixels) {
+	for (int j = 0; j < height; ++j) {
+		for (int i = 0; i < width; ++i) {
+			fwrite(&wolfenstein_palette[pixels[(height-1 - j) * width + i]], 3 * sizeof(uint8_t), 1, stdout);
+		}
 	}
 }
 
 void process_arguments(int argc, char *argv[]) {
 	for (int i = 1; i < argc; ++i) {
-		if (strncmp(argv[i++], "-mode", 5) == 0) {
-			if (strncmp(argv[i], "linear", 1) == 0) {
-				assembly_mode = LINEAR_MODE;
-			} else if (strncmp(argv[i], "woven", 1) == 0) {
-				assembly_mode = WOVEN_MODE;
-			} else {
-				fprintf(stderr, "Error: unknown mode, valid modes are \"l\" and \"w\".\n");
-			}
+		if (strcmp(argv[i],        "-help"      ) == 0) {
+			print_usage();
+		} else if (strcmp(argv[i], "-linear"    ) == 0) {
+			assembly_mode = WOVEN_MODE;
+		} else if (strcmp(argv[i], "-woven"     ) == 0) {
+			assembly_mode = WOVEN_MODE;
+		} else if (strcmp(argv[i], "-transposed") == 0) {
+			assembly_mode = TRANSPOSED_MODE;
+		} else if (strcmp(argv[i], "-flipped"   ) == 0) {
+			assembly_mode = FLIPPED_MODE;
+		} else {
+			fprintf(stderr, "Unknown argument \"%s\".\n", argv[i-1]);
+			print_usage();
 		}
 	}
+}
+
+void print_usage(void) {
+	fprintf(stderr, "Usage: input file is standard input, output file is standard output.\n"
+	                "Arguments:\n"
+					"  -help        Display this information\n"
+					"  -linear      Set assembly mode to linear\n"
+					"  -woven       Set assembly mode to woven\n"
+					"  -transposed  Set assembly mode to transposed\n"
+					"  -flipped     Set assembly mode to flipped\n");
 }
 

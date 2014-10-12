@@ -14,6 +14,7 @@
 #define EXTRACT_PIC_OFFSETS  "-po"  ///< Print the pic offsets.
 #define EXTRACT_PIC_TABLE    "-pt"  ///< Print the pic table.
 #define EXTRACT_PIC          "-pic" ///< Print a bitmap picture (not a sprite or texture).
+#define EXTRACT_TEXTURE      "-tex" ///< Print a texture.
 #define EXTRACT_SPRITE       "-spr" ///< Print a sprite.
 #define SPECIFY_EXTENSION    "-ext" ///< Specify a particular extension to use.
 #define SET_DEBUG_LEVEL      "-dbg" ///< Set the debug level manually.
@@ -41,7 +42,7 @@ enum program_error {
  *  Processed command-line arguments one after the other.
  *
  *  @param argc Amount of arguments.
- *  @param argv Array containing the arguments.
+ *  @param argv Array of strings containing the arguments.
  */
 void process_arguments(int argc, const char *argv[]);
 
@@ -125,6 +126,22 @@ void print_pic_table(void);
  */
 void print_picture(const char *restrict magic_number);
 
+/**
+ *  Print a texture to the standard output.
+ *
+ *  @param magic_number Magic number of the texture.
+ *
+ *  The magic number is dependent on the version of the game.
+ */
+void print_texture(const char *restrict magic_number);
+
+/**
+ *  Print a  sprite to the standard output.
+ *
+ *  @param magic_number Magic number of the sprite.
+ *
+ *  The magic number is dependent on the version of the game.
+ */
 void print_sprite(const char *restrict magic_number);
 
 #pragma mark -
@@ -169,6 +186,8 @@ void process_arguments(int argc, const char *argv[]) {
 			print_pic_offsets();
 		} else if (ARG_EQUAL(EXTRACT_PIC)         ) {
 			print_picture(argv[++i]);
+		} else if (ARG_EQUAL(EXTRACT_TEXTURE)     ) {
+			print_texture(argv[++i]);
 		} else if (ARG_EQUAL(EXTRACT_SPRITE)      ) {
 			print_sprite(argv[++i]);
 		} else if (ARG_EQUAL(SET_DEBUG_LEVEL)     ) {
@@ -186,14 +205,16 @@ void process_arguments(int argc, const char *argv[]) {
 
 void print_usage(FILE *file) {
 	fprintf(file, "Usage: Call from the same directory where your data files are located and pass the following arguments\n"
-				  "\t"SPECIFY_EXTENSION    " WLX   " "Set the extension of the data files to the argument WLX\n"
-				  "\t"SET_DEBUG_LEVEL      " n     " "Set the level of debug messages (default 0, no messages)\n"
+				  "\t"SPECIFY_EXTENSION    " WLX   "  "Set the extension of the data files to the argument WLX\n"
+				  "\t"SET_DEBUG_LEVEL      " n     "  "Set the level of debug messages (default 0, no messages)\n"
 			      "\t"EXTRACT_LEVEL_ATLAS  "        " "Extract the atlas of the levels\n"
 			      "\t"EXTRACT_LEVEL_HEADER "  e l   " "Extract the header data for the specified level (level and episode given as numbers)\n"
 			      "\t"EXTRACT_MAP          "  e l m " "Extract the specified map for the specified level (map in the range 0 - 2)\n"
 			      "\t"EXTRACT_PIC_OFFSETS  "        " "Extract the picture offsets\n"
 			      "\t"EXTRACT_PIC_TABLE    "        " "Extract the picture table\n"
-			      "\t"EXTRACT_PIC          " m     " "Extract the picture with the specified magic number\n"
+			      "\t"EXTRACT_PIC          " m     "  "Extract the picture with the specified magic number\n"
+			      "\t"EXTRACT_TEXTURE      " m     "  "Extract the texture with the specified magic number\n"
+			      "\t"EXTRACT_SPRITE       " m     "  "Extract the sprite with the specified magic number\n"
 			      "The output is printed to the standard output, so you'll want to redirect it into another file or pipe it into another program.\n"
 				  "Arguments are processed in the order they are give, so if for exapmle you want to specify the extension you have to do it before trying to extract an asset.\n"
 			);
@@ -248,15 +269,12 @@ void print_level_header(const char *restrict episode, const char *restrict level
 
 void print_level_map(const char *restrict episode, const char *restrict level, const char *restrict map) {
 	word *result = NULL;
-	//struct level_header *header = NULL;
-	uint e = (uint)strtol(episode, NULL, 10);
-	uint l = (uint)strtol(level  , NULL, 10);
-	uint m = (uint)strtol(map    , NULL, 10);
+	uint  e      = (uint)strtol(episode, NULL, 10);
+	uint  l      = (uint)strtol(level  , NULL, 10);
+	uint  m      = (uint)strtol(map    , NULL, 10);
 	
-	//extract_level_header(&header, e, l);
 	size_t written_bytes = extract_map(&result, e, l, m);
 	
-	//for (word i = 0; i < header->height * header->width; ++i) {
 	for (word i = 0; i < 64*64; ++i) {
 		written_bytes *= fwrite(&result[i], sizeof(word), 1, stdout);
 	}
@@ -297,12 +315,30 @@ void print_picture(const char *restrict magic_number) {
 	}
 }
 
-void print_sprite(const char *restrict magic_number) {
-	uint i = (uint)strtol(magic_number, NULL, 10);
-	byte *result = NULL;
-	size_t written_bytes = extract_sprite(&result, i);
-	written_bytes *= fwrite(&(word){64}, sizeof(word), 2, stdout);
+void print_texture(const char *restrict magic_number) {
+	uint  i       = (uint)strtol(magic_number, NULL, 10);
+	byte  size[4] = {0x40, 0x00, 0x40, 0x00}; // The size of the texture in words (64=0x40)
+	byte *result  = NULL;
+	size_t written_bytes = extract_texture(&result, i);
+
+	written_bytes *= fwrite(size  , sizeof(byte),     4, stdout);
 	written_bytes *= fwrite(result, sizeof(byte), 64*64, stdout);
+
+	if (written_bytes == 0) {
+		fprintf(stderr, "\tError writing picture %i.\n", i);
+	}
+}
+
+void print_sprite(const char *restrict magic_number) {
+	uint  i       = (uint)strtol(magic_number, NULL, 10);
+	byte  size[4] = {0x40, 0x00, 0x40, 0x00}; // The size of the texture in words (64=0x40)
+	byte *result  = NULL;
+
+	size_t written_bytes = extract_sprite(&result, i);
+
+	written_bytes *= fwrite(size  , sizeof(byte),     4, stdout);
+	written_bytes *= fwrite(result, sizeof(byte), 64*64, stdout);
+
 	if (written_bytes == 0) {
 		fprintf(stderr, "\tError writing picture %i.\n", i);
 	}
