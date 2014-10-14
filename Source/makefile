@@ -19,11 +19,14 @@ pic_extract.o: pic_extract/pic_extract.c pic_extract/pic_extract.h
 sprite_extract.o: sprite_extract/sprite_extract.c sprite_extract/sprite_extract.h
 	${CC} ${CFLAGS} -c sprite_extract/sprite_extract.c
 
+audio_extract.o: audio_extract/audio_extract.c audio_extract/audio_extract.h
+	${CC} ${CFLAGS} -c audio_extract/audio_extract.c
+
 wolf3dextract.o: wolf3dextract.c
 	${CC} ${CFLAGS} -c  wolf3dextract.c
 
-release: wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o
-	${CC} ${CFLAGS} wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o -o wolf3dextract
+release: wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o audio_extract.o
+	${CC} ${CFLAGS} wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o audio_extract.o -o wolf3dextract
 	${CC} ${CFLAGS} vga2ppm.c -o vga2ppm
 
 clean:

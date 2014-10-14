@@ -7,8 +7,8 @@
 #define TRANSPARENCY 0xFF        ///< Colour for transparent texels.
 
 // Error codes
-#define SE_FILE_NOT_FOUND 1; ///< Error opening file.
-#define SE_MALLOC_FAIL    2; ///< Error trying to allocate memory.
+#define SE_FILE_NOT_FOUND 1 ///< Error opening file.
+#define SE_MALLOC_FAIL    2 ///< Error trying to allocate memory.
 
 /** Structure holding the location and position of a chunk. */
 struct vswap_chunk_header {

@@ -36,30 +36,30 @@ struct color {
 	uint8_t a; ///< Alpha (unused)
 };
 
-/** Assemble the pixels strictly as they were given. */
-void assemble_linear(uint16_t width, uint16_t height, uint8_t *pixels);
+/** Compose the pixels strictly as they were given. */
+int compose_linear    (uint16_t width, uint16_t height, int i, int j);
 
-/** Assemble the pixels VGA-style by "weaving" them together. */
-void assemble_woven(uint16_t width, uint16_t height, uint8_t *pixels);
+/** Compose the pixels VGA-style by "weaving" them together. */
+int compose_woven     (uint16_t width, uint16_t height, int i, int j);
 
-/** Assemble the pixel matrix transposed (for textures). */
-void assemble_transposed(uint16_t width, uint16_t height, uint8_t *pixels);
+/** Compose the pixel matrix transposed (for textures). */
+int compose_transposed(uint16_t width, uint16_t height, int i, int j);
 
-/** Assemble the pixels flipped horizontally (for sprites). */
-void assemble_flipped(uint16_t width, uint16_t height, uint8_t *pixels);
+/** Compose the pixels flipped horizontally (for sprites). */
+int compose_flipped   (uint16_t width, uint16_t height, int i, int j);
 
 void print_usage(void);
 
 /** Map an assembly mode to an assembly function. */
-void (*assembly_function[NUMBER_OF_MODES])(uint16_t width, uint16_t height, uint8_t *pixels) = {
-	[LINEAR_MODE    ] = assemble_linear,     ///< Linear.
-	[WOVEN_MODE     ] = assemble_woven,      ///< Woven.
-	[TRANSPOSED_MODE] = assemble_transposed, ///< Transposed.
-	[FLIPPED_MODE   ] = assemble_flipped,    ///< Flipped.
+int (*compose_function[NUMBER_OF_MODES])(uint16_t width, uint16_t height, int i, int j) = {
+	[LINEAR_MODE    ] = compose_linear,     ///< Linear.
+	[WOVEN_MODE     ] = compose_woven,      ///< Woven.
+	[TRANSPOSED_MODE] = compose_transposed, ///< Transposed.
+	[FLIPPED_MODE   ] = compose_flipped,    ///< Flipped.
 };
 
 /** Currently selected assembly mode. */
-int assembly_mode = TRANSPOSED_MODE;
+int assembly_mode = LINEAR_MODE;
 
 /** Map an index number to an RGBA colour. */
 struct color wolfenstein_palette[] = {
@@ -90,40 +90,26 @@ int main(int argc, char *argv[]) {
 	fprintf(stdout, "P6\n%s\n%d %d\n255\n", "#This file follows the binary PPM Format from the Netpbm standard", width, height);
 
 	// Iterate indefinitely over the pixel array and write it to the output stream.
-	assembly_function[assembly_mode](width, height, pixels);
+	for (int j = 0; j < height; ++j) {
+		for (int i = 0; i < width; ++i) {
+			fwrite(&wolfenstein_palette[pixels[compose_function[assembly_mode](width, height, i, j)]], 3 * sizeof(uint8_t), 1, stdout);
+		}
+	}
 
 	return 0;
 }
 
-void assemble_linear(uint16_t width, uint16_t height, uint8_t *pixels) {
-	for (int i = 0; i < width * height; ++i) {
-			fwrite(&wolfenstein_palette[pixels[i]], 3 * sizeof(uint8_t), 1, stdout);
-	}
+int compose_linear(uint16_t width, uint16_t height, int i, int j) {
+	return (j*width + i);
 }
-
-void assemble_woven(uint16_t width, uint16_t height, uint8_t *pixels) {
-	for (int j = 0; j < height; ++j) {
-		for (int i = 0; i < width; ++i) {
-			// This is how the pixels need to be read to order them linearly in the output picture.
-			fwrite(&wolfenstein_palette[pixels[(j*(width>>2)+(i>>2))+(i&3)*(width>>2)*height]], 3 * sizeof(uint8_t), 1, stdout);
-		}
-	}
+int compose_woven(uint16_t width, uint16_t height, int i, int j) {
+	return (j*(width>>2)+(i>>2))+(i&3)*(width>>2)*height;
 }
-
-void assemble_transposed(uint16_t width, uint16_t height, uint8_t *pixels) {
-	for (int j = 0; j < height; ++j) {
-		for (int i = 0; i < width; ++i) {
-			fwrite(&wolfenstein_palette[pixels[i*height + j]], 3 * sizeof(uint8_t), 1, stdout);
-		}
-	}
+int compose_transposed(uint16_t width, uint16_t height, int i, int j) {
+	return (i*height + j);
 }
-
-void assemble_flipped(uint16_t width, uint16_t height, uint8_t *pixels) {
-	for (int j = 0; j < height; ++j) {
-		for (int i = 0; i < width; ++i) {
-			fwrite(&wolfenstein_palette[pixels[(height-1 - j) * width + i]], 3 * sizeof(uint8_t), 1, stdout);
-		}
-	}
+int compose_flipped(uint16_t width, uint16_t height, int i, int j) {
+	return (height-1 - j) * width + i;
 }
 
 void process_arguments(int argc, char *argv[]) {
