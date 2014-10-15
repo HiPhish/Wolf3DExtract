@@ -17,6 +17,7 @@ Thumbs.db
 *.out
 wolf3dextract
 vga2ppm
+pcs2wav
 
 #################
 # Vim generated #

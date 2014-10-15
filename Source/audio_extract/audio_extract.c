@@ -139,7 +139,7 @@ size_t extract_sound(byte **buffer, uint magic_number, sound_format format) {
 				fprintf(stderr, "Nonexistent sound effect: %i in format %s.\n", magic_number, format_to_string[format]);
 				break;
 			}
-			chunk_size = load_pcs_sound(buffer, chunk_offsets[magic_number], chunk_size);
+			chunk_size = load_pcs_sound(buffer, magic_number, chunk_size);
 			break;
 		case ADLIB_SOUND:
 			magic_number += START_ADLIB_SOUND;
@@ -147,7 +147,7 @@ size_t extract_sound(byte **buffer, uint magic_number, sound_format format) {
 				fprintf(stderr, "Nonexistent sound effect: %i in format %s.\n", magic_number, format_to_string[format]);
 				break;
 			}
-			chunk_size = load_adlib_sound(buffer, chunk_offsets[magic_number], chunk_size);
+			chunk_size = load_adlib_sound(buffer, magic_number, chunk_size);
 		default:
 			fprintf(stderr, "Unknown sound effect format, aborting.");
 			break;
