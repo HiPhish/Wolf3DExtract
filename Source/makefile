@@ -1,4 +1,4 @@
-CC = clang
+snd2wav= clang
 # turn on  level 2 optimisation and Clang hard-mode (error on language extensions and treat warnings as errors)
 CFLAGS = -std=c99 -O2 -pedantic -Werror
 
@@ -25,10 +25,10 @@ audio_extract.o: audio_extract/audio_extract.c audio_extract/audio_extract.h
 wolf3dextract.o: wolf3dextract.c
 	${CC} ${CFLAGS} -c  wolf3dextract.c
 
-release: wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o audio_extract.o vga2ppm.c pcs2wav.c
+release: wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o audio_extract.o vga2ppm.c snd2wav.c
 	${CC} ${CFLAGS} wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o audio_extract.o -o wolf3dextract
 	${CC} ${CFLAGS} vga2ppm.c -o vga2ppm
-	${CC} ${CFLAGS} pcs2wav.c -o pcs2wav
+	${CC} ${CFLAGS} snd2wav.c -o snd2wav
 
 clean:
 	rm -rf *.o

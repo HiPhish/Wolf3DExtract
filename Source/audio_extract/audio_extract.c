@@ -6,13 +6,21 @@
 #define AE_FILE_NOT_FOUND 2 ///< Error trying to allocate memory.
 
 #define AUDIOHED_FILE "AUDIOHED.ext" ///< File containing the audio offsets.
-#define AUDIOT_FILE   "AUDIOT.ext"
+#define AUDIOT_FILE   "AUDIOT.ext"   ///< File containing the audio chunks.
+#define VSWAP_FILE    "VSWAP.EXT"    ///< File containing the digitised sound effects.
 
 /** Number of sound effects per type (PC speaker, Adlib, digitized). */
 uint32_t number_of_sounds[GAME_VERSIONS] = {
 	[WL1_I] = 87, ///< WL1 (placeholder)
 	[WL3_I] = 87, ///< WL3 (placeholder)
 	[WL6_I] = 87, ///< WL6
+};
+
+/** Number of digitised sound effects per game version. */
+uint32_t number_of_digi_sounds[GAME_VERSIONS] = {
+	[WL1_I] = 46, ///< WL1 (placeholder)
+	[WL3_I] = 46, ///< WL3 (placeholder)
+	[WL6_I] = 46, ///< WL6
 };
 
 /** Number of sound effects per type (PC speaker, Adlib, digitized). */
@@ -35,6 +43,16 @@ char *format_to_string[SOUND_FORMATS] = {
 
 /** Total number of chunks to read, plus one more past the end. */
 #define NUMBER_OF_CHUNKS (3*number_of_sounds[current_game_version]+number_of_music[current_game_version]+1)
+
+/** Opens a file with given variable name and file name and keeps the file open. */ 
+#define PREPARE_FILE(name, file, error)                            \
+	char fname[] = file;                                           \
+	change_extension(fname, extension);                            \
+	FILE *name = fopen(fname, "rb");                               \
+	if (name == NULL) {                                            \
+		fprintf(stderr, "Error: could not open file %s.\n", fname);\
+		return error;                                              \
+	}                                                              \
 
 /** Sequence of audion chunk offsets. */
 uint32_t *chunk_offsets;
@@ -63,6 +81,8 @@ size_t load_pcs_sound(byte **buffer, int32_t magic_number, int32_t length);
  * @return Length of the chunk, or 0 if an error occured.
  */
 size_t load_adlib_sound(byte **buffer, int32_t magic_number, int32_t length);
+
+size_t load_digi_sound(byte **buffer, int32_t magic_number);
 
 /**
  * Loads a music track into a buffer.
@@ -97,14 +117,7 @@ int load_chunk_offsets(void) {
 }
 
 size_t load_pcs_sound(byte **buffer, int32_t magic_number, int32_t length) {
-	char audiot_fname[] = AUDIOT_FILE;
-	change_extension(audiot_fname, extension);
-	FILE *audiot = fopen(audiot_fname, "rb");
-	if (audiot == NULL) {
-		fprintf(stderr, "Error: could not open the audio file \"%s\".\n", audiot_fname);
-		return 0;
-	}
-	DEBUG_PRINT(1, "Opened AUDIOT file.\n")
+	PREPARE_FILE(audiot, AUDIOT_FILE, 0)
 
 	if ((*buffer = malloc(length * sizeof(byte))) == NULL) {
 		fprintf(stderr, "Error: could not allocate memory for sound effect.\n");
@@ -121,6 +134,49 @@ size_t load_pcs_sound(byte **buffer, int32_t magic_number, int32_t length) {
 size_t load_adlib_sound(byte **buffer, int32_t magic_number, int32_t length) {
 	// There is no real difference between PC speaker and AdLib in regards to extraction
 	return load_pcs_sound(buffer, magic_number, length);
+}
+
+size_t load_digi_sound(byte **buffer, int32_t magic_number) {
+	if (magic_number >= number_of_digi_sounds[current_game_version]) {
+		fprintf(stderr, "Error: invalid digital sound number `%i`, must be within [0, %i).\n", magic_number, number_of_digi_sounds[current_game_version]);
+		return 0;
+	}
+
+	word     number_of_chunks; // total number of chunks in the file
+	word     sound_start;      // index of the first sound chunk in the file
+	uint32_t list_offset;      // offset of the audio chunk list
+	uint32_t chunk_offset;     // offset of the audio chunk
+	word     chunk_length;     // length of the complete chunk
+	uint32_t chunk_index;      // index of the audio chunk
+
+	PREPARE_FILE(vswap, VSWAP_FILE, 0)
+	// read the number of chunks and sound start
+	fread(&number_of_chunks, sizeof(word), 1, vswap);
+	fseek(vswap, 2 * sizeof(word), SEEK_SET); // skip over sprite start
+	fread(&sound_start, sizeof(word), 1, vswap);
+
+	// seek to the list, read the index of chunk and its length
+	fseek(vswap, 3 * sizeof(word) + (number_of_chunks - 1) * sizeof(uint32_t), SEEK_SET);
+	fread(&list_offset, sizeof(uint32_t), 1,vswap);
+	fseek(vswap, list_offset * sizeof(byte) + magic_number * 2 * sizeof(word), SEEK_SET);
+	fread(&chunk_index, sizeof(word), 1, vswap);
+	fread(&chunk_length, sizeof(word), 1, vswap);
+
+	// seek to the location storing the chunk offset
+	fseek(vswap, 3*sizeof(word) + (sound_start + chunk_index) * sizeof(uint32_t), SEEK_SET);
+	fread(&chunk_offset, sizeof(uint32_t), 1, vswap);
+	
+	// seek to the chunk, allocate buffer and read it
+	fseek(vswap, chunk_offset * sizeof(byte), SEEK_SET);
+	if ((*buffer = malloc(chunk_length * sizeof(byte))) == NULL) {
+		fprintf(stderr, "Error: could not allocate memory for sound effect.\n");
+		fclose(vswap);
+		return 0;
+	}
+	fread(*buffer, sizeof(byte), chunk_length, vswap);
+
+	fclose(vswap);
+	return chunk_length;
 }
 
 size_t load_music_track(byte **buffer, int32_t magic_number, int32_t length) {
@@ -148,6 +204,10 @@ size_t extract_sound(byte **buffer, uint magic_number, sound_format format) {
 				break;
 			}
 			chunk_size = load_adlib_sound(buffer, magic_number, chunk_size);
+			break;
+		case DIGI_SOUND:
+			chunk_size = load_digi_sound(buffer, magic_number);
+			break;
 		default:
 			fprintf(stderr, "Unknown sound effect format, aborting.");
 			break;

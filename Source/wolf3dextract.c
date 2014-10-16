@@ -208,10 +208,10 @@ void process_arguments(int argc, const char *argv[]) {
 			print_texture(argv[++i]);
 		} else if (ARG_EQUAL(EXTRACT_SPRITE)      ) {
 			print_sprite(argv[++i]);
-		} else if (ARG_EQUAL(EXTRACT_SOUND)      ) {
+		} else if (ARG_EQUAL(EXTRACT_SOUND)       ) {
 			print_sound(argv[i+1], argv[i+2]);
 			i += 2;
-		} else if (ARG_EQUAL(EXTRACT_MUSIC)      ) {
+		} else if (ARG_EQUAL(EXTRACT_MUSIC)       ) {
 			print_music(argv[++i]);
 		} else if (ARG_EQUAL(SET_DEBUG_LEVEL)     ) {
 			set_debug_level(argv[++i]);
@@ -383,10 +383,12 @@ void print_sound(const char *restrict magic_number, const char *restrict format)
 	size_t        l;
 	byte         *r;
 
-	if (strncmp(format, "pc", 2) == 0) {
+	if (strncmp(format, "p", 1) == 0) {
 		f = PC_SPEAKER;
-	} else if (strncmp(format, "adlib", 5) == 0) {
+	} else if (strncmp(format, "a", 1) == 0) {
 		f = ADLIB_SOUND;
+	} else if (strncmp(format, "d", 1) == 0) {
+		f = DIGI_SOUND;
 	} else {
 		fprintf(stderr, "Error: unknown format \"%s\".\n", format);
 		return;
@@ -394,6 +396,12 @@ void print_sound(const char *restrict magic_number, const char *restrict format)
 	
 	if ((l = extract_sound(&r, i, f)) == 0) {
 		return;
+	}
+	
+	// Digitised sound is raw PCM data, so we need to prepend the file size.
+	if (f == DIGI_SOUND) {
+		word s = (word)l;
+		fwrite(&s, sizeof(word), 1, stdout);
 	}
 	fwrite(r, sizeof(byte), l, stdout);
 	free(r);

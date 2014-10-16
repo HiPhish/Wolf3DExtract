@@ -10,7 +10,8 @@ typedef int sound_format;
 //Sound effect format
 #define PC_SPEAKER    0 ///< PC speaker sound format.
 #define ADLIB_SOUND   1 ///< AdLib sound format.
-#define SOUND_FORMATS 2 ///< Number of possible sound effect formats.
+#define DIGI_SOUND    2 ///< Digitised sound format.
+#define SOUND_FORMATS 3 ///< Number of possible sound effect formats.
 
 /**
  * Extracts a sound effect into a buffer.
