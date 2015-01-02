@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "compression.h"
 
+
+/*-[ CONSTANTS AND MACROS ]---------------------------------------------------*/
 #define NEAR 0xA7 ///< Near flag for Carmack compression.
 #define FAR  0xA8 ///< Far flag for Carmack compression.
 #define ROOT 254  ///< Root node index for Huffman compression.
@@ -13,7 +15,8 @@
 		return NULL_POINTERS;\
 	}
 
-#pragma mark -
+
+/*-[ FUNCTION IMPLEMENTATIONS ]-----------------------------------------------*/
 
 int rlew_expand(word *const source, word *const destination, const word length, const word rlew_tag) {
 	CHECK_FOR_NULL_REFERENCES
@@ -41,11 +44,12 @@ int carmack_expand(word *const source, word *const destination, word length) {
 
 	// the read-, write- and copy pointers are byte pointers for smaller iteration steps
 	byte *read = (byte *)source, *write = (byte *)destination, *copy; // read- and write heads of the algorithm (as bytes)
-	byte flag;
+	byte  flag;
 	word offset = 0, count = 0, i = 0;
 	// compressed blocks have the following form: (count, flag, offset, [offset]); offset is a byte for near pointers, a word for far pointers
 
-	#define COPY_WORD {*(write++) = *(copy++); *(write++) = *(copy++); --length;} ///< This is a workaround for lack of nested functions.
+	// This is a workaround for lack of nested functions.
+	#define COPY_WORD {*(write++) = *(copy++); *(write++) = *(copy++); --length;}
 	
 	DEBUG_PRINT(1, "\nBeginning Carmack-expansion to %i words length...\n", length)
 	while (length > 0) {
@@ -90,8 +94,8 @@ int huffman_expand(byte *const source, byte *destination, int32_t length, struct
 	CHECK_FOR_NULL_REFERENCES
 
 	byte *read  = source, *write = destination;
-	byte mask   = 0x01;
-	byte input  = *(read++);
+	byte  mask  = 0x01;
+	byte  input = *(read++);
 
 	word node_value;
 	struct huffman_node *node = &tree[ROOT];

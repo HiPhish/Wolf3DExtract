@@ -4,17 +4,26 @@
 #include "../compression/compression.h"
 #include "../globals.h"
 
+
+/*-[ CONSTANTS ]--------------------------------------------------------------*/
+
 #define TREE_FILE  "VGADICT.ext"  ///< File containing the Huffman tree.
 #define HEAD_FILE  "VGAHEAD.ext"  ///< File containing the picture offsets.
 #define GRAPH_FILE "VGAGRAPH.ext" ///< File containing the pictures.
 
 #define HUFFMAN_TREE_NODE_COUNT 255 ///< Number of nodes in the Huffman tree.
 
+
+/*-[ TYPE DEFINITIONS ]-------------------------------------------------------*/
+
 /** Structure holding the size of bitmap pictures. */
 struct pic_size {
 	int16_t width;  ///< Width of the pic
 	int16_t height; ///< Height of the pic
 };
+
+
+/*-[ VARIABLE DEFINITIONS ]---------------------------------------------------*/
 
 /** Tree structure for Huffman compression. */
 struct huffman_node *huffman_tree;
@@ -54,36 +63,37 @@ struct pic_size *pic_table;     ///< Array of sizes for each pic.
 int32_t         *graph_offsets; ///< Array of file offsets for each chunk in the VGAGRAPH file.
 
 
-/**
- *  Loads Huffman tree from a file and stores it in an array.
+/*-[ FUNCTION DECLARATIONS ]--------------------------------------------------*/
+
+/** Loads Huffman tree from a file and stores it in an array.
  *
- *  @param force Whether to enforce reloading even if there is already a tree.
+ *  @param force  Whether to enforce reloading even if there is already a tree.
  *
- *  @return Returns 0 on success, an error code otherwise.
+ *  @return  Returns 0 on success, an error code otherwise.
  */
 int load_huffman_tree(int force);
 
-/**
- *  Load the picture offset into the offset array.
+/** Load the picture offset into the offset array.
  *
- *  @param force Whether to enforce reloading even if there is already a tree.
+ *  @param force  Whether to enforce reloading even if there is already a tree.
  *
- *  @return Returns 0 on success, an error code otherwise.
+ *  @return  Returns 0 on success, an error code otherwise.
  */
 int load_pic_offsets(int force);
 
-/**
- *  Load the picture table into the offset array.
+/** Load the picture table into the offset array.
  *
- *  @param force Whether to enforce reloading even if there is already a tree.
+ *  @param force  Whether to enforce reloading even if there is already a tree.
  *
- *  @return Returns 0 on success, an error code otherwise.
+ *  @return  Returns 0 on success, an error code otherwise.
  */
 int load_pic_table(int force);
 
 /** Set various contstants based on the current game version. */
 int set_constants(void);
 
+
+/*-[ IMPLEMENTATIONS ]--------------------------------------------------------*/
 
 int set_constants(void) {
 	pic_start = pic_starts[current_game_version];

@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include "audio_extract.h"
 
+
+/*-[ CONSTANTS AND MACROS ]---------------------------------------------------*/
+
 // Error codes
 #define AE_MALLOC_FAIL    1 ///< Error opening file.
 #define AE_FILE_NOT_FOUND 2 ///< Error trying to allocate memory.
@@ -8,6 +11,28 @@
 #define AUDIOHED_FILE "AUDIOHED.ext" ///< File containing the audio offsets.
 #define AUDIOT_FILE   "AUDIOT.ext"   ///< File containing the audio chunks.
 #define VSWAP_FILE    "VSWAP.EXT"    ///< File containing the digitised sound effects.
+
+// Starting offsets for the individual sound types (see below for mappings)
+#define START_PC_SOUND    (0*number_of_sounds[current_game_version]) ///< Offset to the first PC speaker chunk.
+#define START_ADLIB_SOUND (1*number_of_sounds[current_game_version]) ///< Offset to the first Adlib chunk.
+#define START_DIGI_SOUND  (2*number_of_sounds[current_game_version]) ///< Offset to the first digitized chunk.
+#define START_MUSIC       (3*number_of_sounds[current_game_version]) ///< Offset to the first music chunk.
+
+/** Total number of chunks to read, plus one more past the end. */
+#define NUMBER_OF_CHUNKS (3*number_of_sounds[current_game_version]+number_of_music[current_game_version]+1)
+
+/** Opens a file with given variable name and file name and keeps the file open. */ 
+#define PREPARE_FILE(name, file, error)                            \
+	char fname[] = file;                                           \
+	change_extension(fname, extension);                            \
+	FILE *name = fopen(fname, "rb");                               \
+	if (name == NULL) {                                            \
+		fprintf(stderr, "Error: could not open file %s.\n", fname);\
+		return error;                                              \
+	}                                                              \
+
+
+/*-[ MAPPINGS ]---------------------------------------------------------------*/
 
 /** Number of sound effects per type (PC speaker, Adlib, digitized). */
 uint32_t number_of_sounds[GAME_VERSIONS] = {
@@ -30,29 +55,14 @@ uint32_t number_of_music[GAME_VERSIONS] = {
 	[WL6_I] = 27, ///< WL6
 };
 
+/** Maps a sound effect format to a string literal. */
 char *format_to_string[SOUND_FORMATS] = {
 	[PC_SPEAKER ] = "PC speaker",
 	[ADLIB_SOUND] = "AdLib"
 };
 
-// Starting offsets for the individual sound types
-#define START_PC_SOUND    (0*number_of_sounds[current_game_version]) ///< Offset to the first PC speaker chunk.
-#define START_ADLIB_SOUND (1*number_of_sounds[current_game_version]) ///< Offset to the first Adlib chunk.
-#define START_DIGI_SOUND  (2*number_of_sounds[current_game_version]) ///< Offset to the first digitized chunk.
-#define START_MUSIC       (3*number_of_sounds[current_game_version]) ///< Offset to the first music chunk.
 
-/** Total number of chunks to read, plus one more past the end. */
-#define NUMBER_OF_CHUNKS (3*number_of_sounds[current_game_version]+number_of_music[current_game_version]+1)
-
-/** Opens a file with given variable name and file name and keeps the file open. */ 
-#define PREPARE_FILE(name, file, error)                            \
-	char fname[] = file;                                           \
-	change_extension(fname, extension);                            \
-	FILE *name = fopen(fname, "rb");                               \
-	if (name == NULL) {                                            \
-		fprintf(stderr, "Error: could not open file %s.\n", fname);\
-		return error;                                              \
-	}                                                              \
+/*-[ VARIABLE DECLARATIONS ]--------------------------------------------------*/
 
 /** Sequence of audion chunk offsets. */
 uint32_t *chunk_offsets;
@@ -60,40 +70,53 @@ uint32_t *chunk_offsets;
 /** Load the offsets of the audio chunks into the offset buffer. */
 int load_chunk_offsets(void);
 
-/**
- * Loads a PC speaker sound effect into a buffer.
+
+/*-[ FUNCTION DECLARATIONS ]--------------------------------------------------*/
+
+/** Loads a PC speaker sound effect into a buffer.
  *
- * @param buffer Pointer to a non-allocated byte-sequence to store the data into.
- * @param offset Offset of the chunk in the *AUDIOT* file.
- * @param length Length of the chunk in the *AUDIOT* file.
+ *   @param buffer  Pointer to a non-allocated byte-sequence to store the data.
+ *   @param offset  Offset of the chunk in the *AUDIOT* file.
+ *   @param length  Length of the chunk in the *AUDIOT* file.
  *
- * @return Length of the chunk, or 0 if an error occured.
+ *   @return  Length of the chunk, or 0 if an error occured.
  */
 size_t load_pcs_sound(byte **buffer, int32_t magic_number, int32_t length);
 
-/**
- * Loads an AdLib sound effect into a buffer.
+/** Loads an AdLib sound effect into a buffer.
  *
- * @param buffer Pointer to a non-allocated byte-sequence to store the data into.
- * @param offset Offset of the chunk in the *AUDIOT* file.
- * @param length Length of the chunk in the *AUDIOT* file.
+ *  @param buffer        Pointer to a non-allocated byte-sequence to store the
+ *                       data.
+ *  @param magic_number  Magic number of the sound effect.
+ *  @param length        Length of the chunk in the *AUDIOT* file.
  *
- * @return Length of the chunk, or 0 if an error occured.
+ *  @return  Length of the chunk, or 0 if an error occured.
  */
 size_t load_adlib_sound(byte **buffer, int32_t magic_number, int32_t length);
 
+/** Load a digitised sound into a buffer
+ *
+ *  @param buffer        Pointer to a non-allocated byte-sequence to store the
+ *                       data.
+ *  @param magic_number  Magic number of the sound effect.
+ *
+ *  @return  Length of the chunk, or 0 if an error occured.
+ */
 size_t load_digi_sound(byte **buffer, int32_t magic_number);
 
-/**
- * Loads a music track into a buffer.
+/** Loads a music track into a buffer.
  *
- * @param buffer Pointer to a non-allocated byte-sequence to store the data into.
- * @param offset Offset of the chunk in the *AUDIOT* file.
- * @param length Length of the chunk in the *AUDIOT* file.
+ *  @param buffer  Pointer to a non-allocated byte-sequence to store the data.
+ *  @param offset  Offset of the chunk in the *AUDIOT* file.
+ *  @param length  Length of the chunk in the *AUDIOT* file.
  *
- * @return Length of the chunk, or 0 if an error occured.
+ *  @return  Length of the chunk, or 0 if an error occured.
  */
 size_t load_music_track(byte **buffer, int32_t magic_number, int32_t length);
+
+
+
+/*-[ IMPLEMENTATIONS ]--------------------------------------------------------*/
 
 int load_chunk_offsets(void) {
 	if ((chunk_offsets = malloc(NUMBER_OF_CHUNKS * sizeof(uint32_t))) == NULL) {
@@ -112,7 +135,7 @@ int load_chunk_offsets(void) {
 	fread(chunk_offsets, sizeof(uint32_t), NUMBER_OF_CHUNKS, audiohed); 
 	fclose(audiohed);
 
-	DEBUG_PRINT(1, "Loaded chunk offsets.\n");
+	debug_print(1, "Loaded chunk offsets.\n");
 	return 0;
 }
 
@@ -127,13 +150,13 @@ size_t load_pcs_sound(byte **buffer, int32_t magic_number, int32_t length) {
 	fread(*buffer, sizeof(byte), length, audiot);
 	fclose(audiot);
 
-	DEBUG_PRINT(1, "Read shound chunk.\n")
+	debug_print(1, "Read shound chunk.\n");
 	return length;
 }
 
 size_t load_adlib_sound(byte **buffer, int32_t magic_number, int32_t length) {
 	// There is no real difference between PC speaker and AdLib in regards to extraction
-	return load_pcs_sound(buffer, magic_number, length);
+	return load_pcs_sound(buffer, magic_number, length); // magic_number had been increased in the previous function
 }
 
 size_t load_digi_sound(byte **buffer, int32_t magic_number) {
@@ -181,7 +204,7 @@ size_t load_digi_sound(byte **buffer, int32_t magic_number) {
 
 size_t load_music_track(byte **buffer, int32_t magic_number, int32_t length) {
 	// There is no real difference between PC speaker and music in regards to extraction
-	return load_pcs_sound(buffer, magic_number, length);
+	return load_pcs_sound(buffer, magic_number, length); // magic_number had been increased in the previous function
 }
 
 size_t extract_sound(byte **buffer, uint magic_number, sound_format format) {
@@ -225,7 +248,7 @@ size_t extract_music(byte **buffer, uint magic_number) {
 		fprintf(stderr, "Nonexistent music track %i.\n", magic_number);
 		return 0;
 	}
-	DEBUG_PRINT(1, "Chunk size is %i.\n", chunk_size)
+	debug_print(1, "Chunk size is %i.\n", chunk_size);
 
 	return load_music_track(buffer, magic_number, chunk_size);
 }

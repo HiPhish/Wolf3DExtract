@@ -1,38 +1,44 @@
-/*
+/**
  * @file pcs2wav.c
  *
  * Converter program to convert Wolfenstein 3D pc sound effects to Wave files.
  *
- * A simple RIFF wave file consists of a file header for the entire file and two chunks: format and data. All numbers are little-endian.
- * This is what the file header looks like:
+ * A simple RIFF wave file consists of a file header for the entire file and two
+ * chunks: format and data. All numbers are little-endian. This is what the file
+ * header looks like:
+ *
  * | Type    | Name        | Description                       |
  * |---------|-------------|-----------------------------------|
  * | char[4] | declaration | The string "RIFF" in ASCII        |
  * | uint_32 | file length | Length of the entire file minus 8 |
  * | char[4] | declaration | The string "WAVE" in ASCII        |
  *
- * The header is immediately followed by the format chunk, which has always the same size in our case.
+ * The header is immediately followed by the format chunk, which has always the
+ * same size in our case.
+ *
  * | Type    | Name         | Decription                                                  |
  * |---------|--------------|-------------------------------------------------------------|
  * | char[4] | declaration  | The string "fmt " in ASCII (note the space character!)      |
  * | uint_32 | size         | Size of the rest of the format chunk in bytes, always 16    |
  * | uint_16 | audio format | Always 1 for PCM audio                                      |
- * | uint_16 | channels     | How many channels, 1 for mono                               |
+ * | uint_16 | channels     | How many channels, 1 for mono in our case                   |
  * | uint_32 | sample rate  | Number of samples per second                                |
  * | uint_32 | byte rate    | Number of bytes per second (sampe_rate*channels*bit_rate/8) |
  * | uint_16 | block align  | channels * bit_rate / 8                                     |
  * | uint_32 | bit rate     | Number of bits per second (here always 8)                   |
  *
  * It is then followed by the last chunk: the data chunk
+ *
  * | Type     | Name        | Description                               |
  * |----------|-------------|-------------------------------------------|
  * | char [4] | declaration | The string "data" in ASCII                |
  * | uint_32  | size        | Size of the following data chunk in bytes |
  * | uint_8[] | data        | The actual audio data                     |
  *
- * We can see that the header is always 12 bytes long, the format chunk 24 bytes and the data chunk 8 bytes plus the size of audio data. Some
- * specifiations don't count the first two items of the format- and data chunk, so they will list the length of those chunks as 16 and the
- * length of the audio data.
+ * We can see that the header is always 12 bytes long, the format chunk 24 bytes
+ * and the data chunk 8 bytes plus the size of audio data. Some specifiations
+ * don't count the first two items of the format- and data chunk, so they will
+ * list the length of those chunks as 16 and the length of the audio data.
  */
 
 #include <stdlib.h>
@@ -41,6 +47,9 @@
 #include <string.h>
 
 typedef unsigned int uint;
+
+
+/*-[ CONSTANTS ]--------------------------------------------------------------*/
 
 // Sound effect format
 #define DIGITISED         0 ///< Digitised sound effect.
@@ -53,68 +62,74 @@ typedef unsigned int uint;
 #define PCS_RATE       140 ///< Playback rate of original hardware in bytes/second.
 #define PCS_VOLUME      20 ///< Audio volume of the simulated speaker.
 
-/**
- * Read the digitised sound data into a buffer.
+/*-[ FUNCTION DECLARATIONS ]--------------------------------------------------*/
+
+/** Read the digitised sound data into a buffer.
  *
- * @param snd_length Pointer to store the length of the audio data buffer.
- * @param snd_buffer Pointer to the pointer of the audio data sequence.
+ *  @param snd_length  Pointer to store the length of the audio data buffer.
+ *  @param snd_buffer  Pointer to the pointer of the audio data sequence.
  *
- * @return 0 if everything went right, non-0 otherwise.
+ *  @return  0 if everything went right, non-0 otherwise.
  *
- * The length and the buffer pointer are entered blank and will be assigned values.
+ *  The length and the buffer pointer are entered blank and will be assigned
+ *  values.
  */
 int read_digi_buffer(size_t *snd_length, uint8_t **snd_buffer);
 
-/**
- * Read the PC speaker sound data into a buffer.
+/** Read the PC speaker sound data into a buffer.
  *
- * @param snd_length Pointer to store the length of the audio data buffer.
- * @param snd_buffer Pointer to the pointer of the audio data sequence.
+ *  @param snd_length  Pointer to store the length of the audio data buffer.
+ *  @param snd_buffer  Pointer to the pointer of the audio data sequence.
  *
- * @return 0 if everything went right, non-0 otherwise.
+ *  @return  0 if everything went right, non-0 otherwise.
  *
- * The length and the buffer pointer are entered blank and will be assigned values.
+ *  The length and the buffer pointer are entered blank and will be assigned
+ *  values.
  */
 int read_pcs_buffer(size_t *snd_length, uint8_t **snd_buffer);
 
-/**
- * Convert digitised sound effect audio data to wave file format.
+/** Convert digitised sound effect audio data to wave file format.
  *
- * @param source      Pointer to input sequence.
- * @param destination Pointer to output sequence.
- * @param length      Length of the input sequence.
- * @param sample_rate How many samples to generate for each second.
+ *  @param source       Pointer to input sequence.
+ *  @param destination  Pointer to output sequence.
+ *  @param length       Length of the input sequence.
+ *  @param sample_rate  How many samples to generate for each second.
  *
- * The output is raw PCM audio data, not a complete wave file. To create a wave
- * file additional data has to be added.
+ *  @return  0 if everything went right, non-0 otherwise.
+ *
+ *  The output is raw PCM audio data, not a complete wave file. To create a wave
+ *  file additional data has to be added.
  */
 int digi_to_wave(uint8_t **source, uint8_t **destination, size_t snd_length, uint32_t sample_rate);
 
-/**
- * Converts a sequence of PC speaker audio data to wave file format.
+/** Converts a sequence of PC speaker audio data to wave file format.
  *
- * @param source      Pointer to input sequence.
- * @param destination Pointer to output sequence.
- * @param length      Length of the input sequence.
- * @param sample_rate How many samples to generate for each second.
+ *  @param source       Pointer to input sequence.
+ *  @param destination  Pointer to output sequence.
+ *  @param length       Length of the input sequence.
+ *  @param sample_rate  How many samples to generate for each second.
  *
- * The output is raw PCM audio data, not a complete wave file. To create a wave
- * file additional data has to be added.
+ *  @return  0 if everything went right, non-0 otherwise.
+ *
+ *  The output is raw PCM audio data, not a complete wave file. To create a wave
+ *  file additional data has to be added.
  */
 int pcs_to_wave(uint8_t **source, uint8_t **destination, size_t snd_length, uint32_t sample_rate);
 
-/**
- * Processes arguments.
+/** Processes arguments.
  *
- * @param argc Number of arguments to process.
- * @param argv Array of argument strings.
+ *  @param argc  Number of arguments to process.
+ *  @param argv  Array of argument strings.
  *
- * The last argument wins, unknown arguments do nothing.
+ *  The last argument wins, unknown arguments do nothing.
  */
 void process_arguments(int argc, char *argv[]);
 
 /** Print usage instructions to standard error. */
 void print_usage(void);
+
+
+/*-[ GLOBAL VARIABLE DEFINTIONS ]---------------------------------------------*/
 
 /** Format of the audio data (digitised or PC speaker). */
 int audio_format = DIGITISED;
@@ -131,6 +146,7 @@ int (*snd_to_wave[NUMBER_OF_FORMATS])(uint8_t **source, uint8_t **destination, s
 	[PC_SPEAKER] = pcs_to_wave , ///< PC speaker.
 };
 
+/*----------------------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
 	process_arguments(argc, argv);
 	uint8_t *snd_buffer; // sound data sequence (bytes)
@@ -193,6 +209,7 @@ int main(int argc, char *argv[]) {
 	free(wav_buffer);
 	return 0;
 }
+/*----------------------------------------------------------------------------*/
 
 int read_digi_buffer(size_t *snd_length, uint8_t **snd_buffer) {
 	fread(snd_length, sizeof(uint16_t), 1, stdin);
@@ -277,7 +294,8 @@ void process_arguments(int argc, char *argv[]) {
 }
 
 void print_usage(void) {
-	fprintf(stderr, "Usage: input is the standard input, output is the standard output. Use the following arguments:\n"
+	fprintf(stderr, "Usage: input is the standard input, output is the standard output. Use the\n"
+			        "following arguments:\n"
 					"  -digi  Digitised audio mode (default)\n"
 			        "  -pc    PC speaker mode\n"
 		   );

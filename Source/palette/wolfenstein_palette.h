@@ -1,13 +1,12 @@
-/**
- *  @file wolfenstein_palette.txt
+/** @file wolfenstein_palette.txt
  *
  *  Palette file for Wolfenstein 3D that maps colour indices to RGB colours.
  *
- *  Each of the 256 possible colour indices gets mapped to the appropriate RGB value.
- *  For example, the index `5` is the sixth element in a 0-based array, so it will be
- *  mapped to the sixth element in this file: `RGB( 42,  0, 42)`. To turn this into
- *  a 32-bit RGBA colour each of the threee components is multiplied with 255 and
- *  divided by 63:
+ *  Each of the 256 possible colour indices gets mapped to the appropriate RGB
+ *  value. For example, the index `5` is the sixth element in a 0-based array,
+ *  so it will be mapped to the sixth element in this file: `RGB( 42,  0, 42)`.
+ *  To turn this into a 32-bit RGBA colour each of the threee components is
+ *  multiplied with 255 and divided by 63:
  *  
  *  	#define RGB(r, g, b) {(r)*255/63, (g)*255/63, (b)*255/63, 0xFF}
  *

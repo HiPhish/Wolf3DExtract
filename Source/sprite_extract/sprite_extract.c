@@ -3,31 +3,14 @@
 #include "sprite_extract.h"
 #include "../globals.h"
 
+/*-[ CONSTANTS AND MACROS ]---------------------------------------------------*/
+
 #define VSWAP_FILE   "VSWAP.ext" ///< File containing the sprites.
 #define TRANSPARENCY 0xFF        ///< Colour for transparent texels.
 
 // Error codes
 #define SE_FILE_NOT_FOUND 1 ///< Error opening file.
 #define SE_MALLOC_FAIL    2 ///< Error trying to allocate memory.
-
-/** Structure holding the location and position of a chunk. */
-struct vswap_chunk_header {
-	uint32_t offset; ///< Offset of the chunk relative to the beginning of the file.
-	word     length; ///< Length of the chunk in bytes ???
-};
-
-static int16_t number_of_chunks; ///< Total number of chunks in the file.
-static int16_t sprite_start;     ///< Offset to the first sprite chunk in the file.
-static int16_t sound_start;      ///< Offset to the first sound chunk in the file.
-
-static struct vswap_chunk_header *headers; // Array of chunk headers.
-
-/**
- * Loads the VSWAP file header and set variables.
- *
- * @return 0 if everything went right, otherwise an error code.
- */
-static int load_vswap_header(void);
 
 /** Open the VSWAP file and keep it open for use. */
 #define LOAD_VSWAP_HEADER                                                    \
@@ -45,6 +28,36 @@ static int load_vswap_header(void);
 		return 0;                  \
 	}                              \
 	LOAD_VSWAP_HEADER              \
+
+
+/*-[ TYPE DEFINITIONS ]-------------------------------------------------------*/
+
+/** Structure holding the location and position of a chunk. */
+struct vswap_chunk_header {
+	uint32_t offset; ///< Offset of the chunk relative to the beginning of the file.
+	word     length; ///< Length of the chunk in bytes ???
+};
+
+
+/*-[ VARIABLE DECLARATIONS ]--------------------------------------------------*/
+
+static int16_t number_of_chunks; ///< Total number of chunks in the file.
+static int16_t sprite_start;     ///< Offset to the first sprite chunk in the file.
+static int16_t sound_start;      ///< Offset to the first sound chunk in the file.
+
+static struct vswap_chunk_header *headers; // Array of chunk headers.
+
+
+/*-[ FUNCTION DECLARATIONS ]--------------------------------------------------*/
+
+/** Loads the VSWAP file header and set variables.
+ *
+ *  @return  0 if everything went right, otherwise an error code.
+ */
+static int load_vswap_header(void);
+
+
+/*-[ IMPLEMENTATIONS ]--------------------------------------------------------*/
 
 static int load_vswap_header(void) {
 	LOAD_VSWAP_HEADER

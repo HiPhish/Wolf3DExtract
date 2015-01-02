@@ -4,73 +4,77 @@
 #include "map_extract.h"
 #include "../compression/compression.h"
 
-#pragma mark Constants
+
+/*-[ CONSTANTS ]--------------------------------------------------------------*/
 
 #define ATLAS_FILE "MAPHEAD.ext"  ///< File containing the levels atlas.
 #define MAPS_FILE  "GAMEMAPS.ext" ///< File containing the levels.
 
-#pragma mark Mappings
 
-/**
- *  Converts a plane integer to its corresponding string.
- */
+/*-[ MAPPINGS ]---------------------------------------------------------------*/
+
+/** Converts a plane integer to its corresponding string. */
 char *plane_to_string[MAP_PLANES] = {
 	[MAP_ARCHITECTURE] = "Architecture",
 	[MAP_OBJECTS     ] = "Objects"     ,
 	[MAP_LOGIC       ] = "Logic"       ,
 };
 
-#pragma mark Functions
 
-/**
- *  Loads the atlas data from the MAPHEADS file into the atlas buffer.
+/*-[ FUNCTION DECLARATIONS ]--------------------------------------------------*/
+
+/** Loads the atlas data from the MAPHEADS file into the atlas buffer.
  *
- *  @return 0 on succes, otherwise an error code.
+ *  @return  0 on succes, otherwise an error code.
  */
 int load_atlas(void);
 
-/**
- *  Loads the header of a level from the GAMEMAPS file into a buffer and returns it.
+/** Loads the header of a level from the GAMEMAPS file into a buffer and returns
+ *  it.
  *
- *  @param gamemaps File pointer to an open GAMEMAPS file.
- *  @param episode  Episode of the level to load.
- *  @param level    Level within the episode.
+ *  @param gamemaps  File pointer to an open GAMEMAPS file.
+ *  @param episode   Episode of the level to load.
+ *  @param level     Level within the episode.
  *
- *  @return Pointer to the allocated header structure.
+ *  @return  Pointer to the allocated header structure.
  *
- *  The GAMEMAPS file needs to be open for reading and the atlas must have been loaded. If the funcion fails a `NULL` pointer is returned.
+ *  The GAMEMAPS file needs to be open for reading and the atlas must have been
+ *  loaded. If the funcion fails a `NULL` pointer is returned.
  */
 struct level_header *load_header(FILE *gamemaps, uint episode, uint level);
 
-/**
- *  Loads a specific map of a level from the GAMEMAPS file into a buffer and returns it.
+/** Loads a specific map of a level from the GAMEMAPS file into a buffer and
+ *  returns it.
  *
- *  @param gamemaps File pointer to an open GAMEMAPS file.
- *  @param header   Header of the map's level.
- *  @param map      Plane of the map to load.
+ *  @param gamemaps  File pointer to an open GAMEMAPS file.
+ *  @param header    Header of the map's level.
+ *  @param map       Plane of the map to load.
  *
- *  @return Pointer to the allocated map buffer.
+ *  @return  Pointer to the allocated map buffer.
  *
- *  The GAMEMAPS file needs to be open for reading and the header must be valid. If the funcion fails a `NULL` pointer is returned.
+ *  The GAMEMAPS file needs to be open for reading and the header must be valid.
+ *  If the funcion fails a `NULL` pointer is returned.
  */
 word *load_map(FILE *gamemaps, struct level_header *header, uint map);
 
 /**
  *  Helper function, changes the template extension of a file name string.
  *
- *  @param file_name The file name to change.
- *  @param extension The new extension to apply.
+ *  @param file_name  The file name to change.
+ *  @param extension  The new extension to apply.
  *
  *  This function assumes a fixed extension length of three characters.
  */
 void change_extension(char *restrict file_name, const char *restrict extension);
 
-#pragma mark Variables
+
+/*-[ VARIABLE DEFINITIONS ]---------------------------------------------------*/
 
 struct level_atlas *atlas = NULL; ///< Variable holding the level atlas.
 
-#pragma mark -
-#pragma mark Implementation
+
+/*-[ FUNCTION IMPLEMENTATIONS ]-----------------------------------------------*/
+
 int load_atlas(void) {
 	if (atlas != NULL) {
 		return 0;
