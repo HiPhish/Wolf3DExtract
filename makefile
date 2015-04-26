@@ -4,3 +4,5 @@ all: source/makefile
 	mv wolf3dextract ../wolf3dextract
 	mv vgs2ppm ../vgs2ppm
 	mv snd2wav ../snd2wav
+	mv snd2wlf ../snd2wlf
+

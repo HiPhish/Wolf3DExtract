@@ -12,11 +12,34 @@ another program.
 Compiling
 =========
 
-Care has been taken to make sure the code fully complies with the C99 standard,
-so any compiler that conforms should be able to compile the code. For users of
-clang_ a makefile is included. For other compilers you can edit the makefile
-manually. I know, I know, I should have used variables, but this was my first
-time writing makefiles, I'll see to make is more in the future.
+A makefile is included with the project, to build navigate to the source folder
+and type on of the following into your terminal::
+
+    make
+    make release
+
+The *release* target will apply compiler optimisations, while the default target
+does not, it is intended for debugging where we don't want the  compiler to alter
+our code.
+
+The makefile was written for the clang_ compiler, if you want to use a different
+compiler you have to re-assign the ``CC`` variable::
+
+    make release CC=gcc
+
+To clean up the build directory use the clean target::
+
+    make clean
+
+You can also run the clang static analyser, both of the spellings below are
+valid::
+
+    make analyze
+    make analyse
+
+There are no dependencies, other than a C99-compliant compiler with support for
+variable-sized arrays. You can refer to the makefile for more details if you
+wish, it is a very simple makefile.
 
 .. _clang: http://clang.llvm.org
 

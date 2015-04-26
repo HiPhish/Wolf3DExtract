@@ -1,5 +1,4 @@
-/**
- *  @file spear_of_destiny_palette.txt
+/** @file spear_of_destiny_palette.txt
  *
  *  Palette file for Spear of Destiny that maps colour indices to RGB colours.
  *

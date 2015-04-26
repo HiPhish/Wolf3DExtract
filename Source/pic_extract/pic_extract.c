@@ -199,6 +199,9 @@ int load_pic_table(int force) {
 	byte *expanded_chunk   = malloc (expanded_length  * sizeof(byte));
 
 	if (compressed_chunk == NULL || expanded_chunk == NULL) {
+		if (compressed_chunk) {free(compressed_chunk);}
+		if (expanded_chunk  ) {free(expanded_chunk  );}
+
 		fprintf(stderr, "Error allocating memory for decompressing picture table");
 		return MALLOC_FAIL;
 	}
@@ -285,7 +288,7 @@ size_t extract_pic(struct picture **buffer, uint magic_number){
 	int compressed_length = graph_offsets[next_index] - graph_offsets[magic_number];
 	
 	DEBUG_PRINT(1, "Allocating compressed chunk of length %i.\n", compressed_length)
-	int32_t *compressed_chunk = malloc(compressed_length * sizeof(byte));
+	int32_t *compressed_chunk = (int32_t *)malloc(compressed_length * sizeof(byte));
 	if (compressed_chunk == NULL) {
 		return 0;
 	}

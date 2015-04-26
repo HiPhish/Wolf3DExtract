@@ -15,6 +15,7 @@ Thumbs.db
 ######################
 *.o
 *.out
+*.plist
 wolf3dextract
 vga2ppm
 snd2wav

@@ -146,12 +146,12 @@ size_t extract_sprite(byte **buffer, uint magic_number) {
 	if ((*buffer = malloc(64 * 64 * sizeof(byte))) == NULL) {
 			fprintf(stderr, "Error: could not allocate memory to hold decompressed sprite.");
 			*buffer = NULL;
+			free(column_offsets);
 			return 0;
 	}
 	memset(*buffer, TRANSPARENCY, 64*64); // fill all the holes
 	DEBUG_PRINT(1, "Set up the buffer.\n");
 
-	//int i = (last_column - first_column + 1 + 2) * sizeof(word); // two words for first and last colum and the offsets
 	word *column_offset_reader = column_offsets; // read-head that will traverse the column offsets
 
 	for (word column = first_column; column <= last_column; ++column) {
