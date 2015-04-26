@@ -25,11 +25,18 @@ audio_extract.o: audio_extract/audio_extract.c audio_extract/audio_extract.h
 wolf3dextract.o: wolf3dextract.c
 	cc ${CFLAGS} -c  wolf3dextract.c
 
+debug: wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o audio_extract.o vga2ppm.c snd2wav.c snd2wlf.c
+	cc ${CFLAGS} wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o audio_extract.o -o wolf3dextract
+	cc ${CFLAGS} vga2ppm.c -o vga2ppm
+	cc ${CFLAGS} snd2wav.c -o snd2wav
+	cc ${CFLAGS} snd2wlf.c -o snd2wlf
+
 release: wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o audio_extract.o vga2ppm.c snd2wav.c snd2wlf.c
 	cc ${CFLAGS} wolf3dextract.o globals.o compression.o map_extract.o pic_extract.o sprite_extract.o audio_extract.o -o wolf3dextract
 	cc ${CFLAGS} vga2ppm.c -o vga2ppm
 	cc ${CFLAGS} snd2wav.c -o snd2wav
 	cc ${CFLAGS} snd2wlf.c -o snd2wlf
+	rm -rf *.o
 
 clean:
 	rm -rf *.o
