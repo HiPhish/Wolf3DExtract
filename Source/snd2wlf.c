@@ -169,7 +169,7 @@ int convert_sound() {
 	uint16_t wlf_length = 0;
 	
 	//Read priority
-	uint16_t priority = read_uint16();
+	read_uint16();
 	
 	// Read and write instrument data
 	// nConn must never be set or the sound will play wrong
