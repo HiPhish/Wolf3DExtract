@@ -168,8 +168,8 @@ int convert_sound() {
 	// The real length of the WLF music data
 	uint16_t wlf_length = 0;
 	
-	//Read priority
-	uint16_t priority = read_uint16();
+	// Skip over the priority
+	fseek(stdin, sizeof(uint16_t), SEEK_CUR);
 	
 	// Read and write instrument data
 	// nConn must never be set or the sound will play wrong
@@ -186,7 +186,7 @@ int convert_sound() {
 
 	// Read and write the pitch data
 	int note_on = 0; //boolean variable
-	for (int i = 0; i < length;) {
+	for (unsigned int i = 0; i < length;) {
 		uint8_t note_value = read_uint8();
 		++i;
 		uint16_t repeated = 1;
